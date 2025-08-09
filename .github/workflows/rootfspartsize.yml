@@ -1,0 +1,70 @@
+name: Build x86 ImageBuilder
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v3
+
+      - name: Clone Lede source
+        run: |
+          git clone -b rootfspartsize --single-branch https://github.com/wkccd/lede.git
+      
+      - name: Cat lede ImaegBuilder Makefile
+        run: |
+          grep "ROOTFS_PARTSIZE" lede/target/imagebuilder/files/Makefile || echo "Not found"
+
+      - name: Add helloworld feed (for luci-app-ssr-plus)
+        run: |
+          echo 'src-git helloworld https://github.com/fw876/helloworld.git' >> lede/feeds.conf.default
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential clang flex bison g++ gawk gcc-multilib \
+            gettext git libncurses-dev libssl-dev python3-pip rsync unzip zlib1g-dev
+          sudo python3 -m pip install setuptools
+          
+      - name: Update feeds
+        run: |
+          cd lede
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Setup x86_64 config
+        run: |
+          cd lede
+          cat <<'EOF' > .config
+          CONFIG_TARGET_x86=y
+          CONFIG_TARGET_x86_64=y
+          CONFIG_TARGET_x86_64_Generic=y
+          CONFIG_PACKAGE_luci-app-ssr-plus=y
+          CONFIG_IB=y
+          EOF
+          make defconfig
+          
+      - name: Build firmware & ImageBuilder
+        run: |
+          cd lede
+          make -j$(nproc) V=s
+
+      - name: Upload Firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-x86_64
+          path: |
+            lede/bin/targets/**/*.img.gz
+
+      - name: Upload ImageBuilder
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagebuilder-x86_64
+          path: |
+            lede/bin/targets/**/*.tar.xz
+            lede/bin/targets/**/*.json
+            lede/bin/targets/**/*.manifest
