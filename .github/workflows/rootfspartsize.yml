@@ -21,17 +21,12 @@ jobs:
           echo "=== After cleanup ==="
           df -h
           
-      - name: Prepare actions dir
-        run: |
-          sudo mkdir -p /mnt/work/_actions
-          sudo rsync -a /home/runner/work/_actions/ /mnt/work/_actions/ || true
-
-      - name: Link /mnt to root
+      - name: Link /mnt to workspace but keep _actions
         run: |
           sudo mkdir -p /mnt/work
-          sudo mount --bind /mnt /home/runner/work
-          echo "=== After mount ==="
-          df -h
+          # 把现有项目的目录挂到 /mnt
+          sudo mount --bind /mnt/workspace /home/runner/work/wkccd/ib-lede
+          df -H /mnt/workspace
 
       - name: Checkout this repo
         uses: actions/checkout@v3
