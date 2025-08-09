@@ -31,7 +31,7 @@ jobs:
           sudo mkdir -p /mnt/ib-lede
           echo "Before rsync:"
           df -h /mnt
-          rsync -a --delete $GITHUB_WORKSPACE/ /mnt/ib-lede/
+          sudo rsync -a --delete $GITHUB_WORKSPACE/ /mnt/ib-lede/
           echo "After rsync:"
           df -h /mnt
           sudo mount --bind /mnt/ib-lede $GITHUB_WORKSPACE
